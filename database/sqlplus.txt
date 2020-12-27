@@ -1,0 +1,119 @@
+# Descobrir o container-id do Oracle
+sudo docker ps -a
+
+# Aceder à linha de comandos do container
+sudo docker exec -it 4d47e0 bash
+
+# Ligar como su
+sudo su
+
+# Criar a pasta
+sudo mkdir aebdpdb
+
+# Alterar as permissões
+chown oracle:oinstall aebdpdb
+
+# Aceder à linha de comandos do container
+sudo docker exec -it 4d47e0 bash
+
+# Aceder como sysdba à root da CDB
+sqlplus sys/Oradoc_db1 as sysdba
+
+# Comando de criação da PDB através da PDB Seed
+create pluggable database aebdpdb admin user aebd_admin identified by aebd roles = (DBA) FILE_NAME_CONVERT=('/u02/app/oracle/oradata/ORCL/pdbseed','/u02/app/oracle/oradata/ORCL/aebdpdb');
+
+# Verificar o estado da nova PDB criada
+select pdb_name, status from cdb_pdbs;
+
+# Verificar o open_mode da nova PDB criada
+select name, open_mode from v$pdbs;
+
+# Verificar o Service Name da nova PDB criada
+select name, con_id from v$active_services order by 1;
+
+# Ver quais os datafiles criados
+select name from v$datafile where con_id=4;
+
+# Garantir que a ligação estabelecida é à CDB como SYSDBA
+show con_name;
+
+# Verificar o open_mode de todos os elementos da instância
+select name, open_mode from v$pdbs;
+
+# Abrir PDB
+alter pluggable database AEBDPDB open;
+
+# Validar o novo estado após a alteração
+select name, open_mode from v$pdbs;
+
+# Garantir a Ligação à PDB
+connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
+
+# Criação do tablespace
+create tablespace pdata datafile '/u02/app/oracle/oradata/ORCL/aebdpdb/pdata01.dbf' size 100M;
+
+# Verificar criação do tablespace
+select tablespace_name, con_id from cdb_tablespaces order by con_id;
+
+# Verificar criação do Datafile
+select file_name, con_id from cdb_data_files order by con_id;
+
+# Criar tablespace temporário
+create temporary tablespace temp_aebdpdb tempfile '/u02/app/oracle/oradata/ORCL/aebdpdb/temppdb01.dbf' size 100M;
+
+# Verificar a criação do tablespace temporario
+select tablespace_name, con_id from cdb_tablespaces where contents='TEMPORARY';
+
+# Verificar a criação do tempfile
+select file_name from dba_temp_files;
+
+# Garantir a Ligação à CDB
+sqlplus sys/Oradoc_db1 as sysdba
+
+# Criar user
+create user c##commonuser identified by oracle container=all;
+
+# Verificar a criação do user
+select username, common, con_id from cdb_users where username like 'C##%';
+
+# Ligar à PDB aebdpdb
+connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
+
+# Criar utilizador local numa PDB
+create user novouser identified by oracle;
+
+# Verificar a criação do user
+select username, common, con_id from cdb_users where username ='NOVOUSER';
+
+# Garantir a Ligação à CDB
+sqlplus sys/Oradoc_db1 as sysdba
+
+# Criar um common role
+create role c##rcommonuser container=all;
+
+# Verificar a criação do role
+select role, common, con_id from cdb_roles where role='C##RCOMMONUSER'; 
+
+# Ligar à PDB aebdpdb.localdomain
+connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
+
+# Criar role numa pdb
+create role hr_manager;
+
+# Verificar a criação do role
+select role, common, con_id from cdb_roles where role='HR_MANAGER';
+
+# Garantir a Ligação à CDB
+sqlplus sys/Oradoc_db1 as sysdba
+
+# Atribuir grant
+grant create session to c##commonuser container=all;
+
+# Verificar a correta execução
+select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE SESSION' and grantee='C##COMMONUSER';
+
+# Validar os privilegios do user criado na aebdpdb
+connect c##commonuser/oracle@localhost:1521/aebdpdb.localdomain
+
+# Confirmar
+select * from session_privs;
