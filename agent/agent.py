@@ -35,41 +35,88 @@ if sys.argv.__len__() == 5:
                 cursor.execute(f'select sysdate from dual')
                 res, = cursor.fetchone()
                 print(f'\t > {res}\n')
-                #TABLESPACES select * from DBA_TABLESPACES;
-                #DATA FILES select * from DBA_DATA_FILES;
-                
-                #CPU usage
-                """ SELECT DISTINCT se.username, ss.sid, ROUND (value/100) "CPU Usage"
-                FROM v$session se, v$sesstat ss, v$statname st
-                WHERE ss.statistic# = st.statistic#
-                AND name LIKE  '%CPU used by this session%'
-                AND se.sid = ss.SID 
-                AND se.username IS NOT NULL
-                ORDER BY ss.sid DESC; """
 
-                #Memory usage SGA PGA
-                """ SELECT sn.INSTANCE_NUMBER,
-                        sga.allo sga,
-                        pga.allo pga,
-                        (sga.allo + pga.allo) tot,
-                        TRUNC (SN.END_INTERVAL_TIME, 'mi') time
-                    FROM (  SELECT snap_id,
-                                INSTANCE_NUMBER,
-                                ROUND (SUM (bytes) / 1024 / 1024 / 1024, 3) allo
-                            FROM DBA_HIST_SGASTAT
-                        GROUP BY snap_id, INSTANCE_NUMBER) sga,
-                        (  SELECT snap_id,
-                                INSTANCE_NUMBER,
-                                ROUND (SUM (VALUE) / 1024 / 1024 / 1024, 3) allo
-                            FROM DBA_HIST_PGASTAT
-                            WHERE name = 'total PGA allocated'
-                        GROUP BY snap_id, INSTANCE_NUMBER) pga,
-                        dba_hist_snapshot sn
-                WHERE     sn.snap_id = sga.snap_id
-                        AND sn.INSTANCE_NUMBER = sga.INSTANCE_NUMBER
-                        AND sn.snap_id = pga.snap_id
-                        AND sn.INSTANCE_NUMBER = pga.INSTANCE_NUMBER
-                ORDER BY sn.snap_id DESC, sn.INSTANCE_NUMBER; """
+                # select v.SQL_FULLTEXT, v.FIRST_LOAD_TIME, v.CON_ID, v.ELAPSED_TIME, v.EXECUTIONS, v.SERVICE, v.PARSING_USER_ID 
+                # FROM v$sql v
+                # WHERE v.SERVICE='orclpdb1.localdomain'
+                # AND v.PARSING_USER_ID!=0
+                # ORDER BY v.FIRST_LOAD_TIME DESC;
+
+                #Data needed for tablespace -----------------------------------
+                # SELECT TABLESPACE_NAME "NAME",
+                #         Round(TABLESPACE_SIZE * (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "Size (M)",
+                #         Round((TABLESPACE_SIZE-USED_SPACE)* (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "FREE (M)",
+                #         Round(USED_SPACE * (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "USED (M)",
+                #         CURRENT_TIMESTAMP  
+                # FROM DBA_TABLESPACE_USAGE_METRICS;
+
+                #Data needed for datafiles -----------------------------------
+                # SELECT  df.FILE_ID,
+                #         Substr(df.file_name,1,80) "File Name",
+                #         Substr(df.tablespace_name,1,20) "Tablespace Name",
+                #         Round(df.bytes/1024/1024,0) "Size (M)",
+                #         decode(f.free_bytes,NULL,0,Round(f.free_bytes/1024/1024,0)) "Free (M)",
+                #         decode(e.used_bytes,NULL,0,Round(e.used_bytes/1024/1024,0)) "Used (M)",
+                #         CURRENT_TIMESTAMP
+                # FROM    DBA_DATA_FILES DF,
+                #     (SELECT file_id,
+                #             sum(bytes) used_bytes
+                #         FROM dba_extents
+                #         GROUP by file_id) E,
+                #     (SELECT sum(bytes) free_bytes,
+                #             file_id
+                #         FROM dba_free_space
+                #         GROUP BY file_id) f
+                # WHERE    e.file_id (+) = df.file_id
+                # AND      df.file_id  = f.file_id (+)
+                # ORDER BY df.tablespace_name,
+                #         df.file_name;
+                
+                # Data needed for Users -----------------------------------
+                # SELECT USER_ID, USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE, CURRENT_TIMESTAMP
+                # FROM DBA_USERS;
+
+                # All privleges
+                # SELECT PRIVILEGE, NAME
+                # FROM SYSTEM_PRIVILEGE_MAP;              
+                
+                # All privileges from Users
+                # SELECT d1.USERNAME, d.GRANTEE, d.PRIVILEGE, CURRENT_TIMESTAMP 
+                # FROM dba_sys_privs d, DBA_USERS d1   
+                # WHERE grantee = d1.USERNAME
+                # OR grantee in (
+                #     SELECT granted_role 
+                #     FROM dba_role_privs 
+                #     CONNECT BY PRIOR granted_role = grantee 
+                #     START WITH grantee = d1.USERNAME
+                # ) ORDER BY 1;              
+
+
+
+                # Data needed for Info -----------------------------------
+                # SELECT (SELECT sys_context('userenv','instance_name') FROM dual) "Instance name" , (select name from V$database) "Database name" , (SELECT version FROM V$INSTANCE) "Version name" FROM dual;                
+
+
+                # Data needed for CPU -----------------------------------
+                # SELECT STAT_NAME, VALUE, COMMENTS, CURRENT_TIMESTAMP
+                # FROM V$OSSTAT
+                # WHERE ROWNUM < 10
+                # AND STAT_NAME != 'RSRC_MGR_CPU_WAIT_TIME';                
+                
+
+                # Data needed for Memory -----------------------------------
+                # SELECT T as "TOTAL (MB)", U as "USED (MB)", CURRENT_TIMESTAMP
+                # FROM dual
+                # INNER JOIN (
+                #     SELECT sum(pga_max_mem)/1024/1024 "U", 'X' "DUMMY"
+                #     FROM v$process
+                # ) "PGA" ON dual.DUMMY = "PGA".DUMMY
+                # INNER JOIN (
+                #     SELECT  sum(value)/1024/1024 "T", 'X' "DUMMY"
+                #     FROM v$sga
+                # ) "SGA" ON dual.DUMMY = "SGA".DUMMY;
+
+                
     except Exception as e:
         raise e
     print('Data fetched!\n')

@@ -50,7 +50,7 @@ select name, open_mode from v$pdbs;
 connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
 
 # Criação do tablespace
-create tablespace pdata datafile '/u02/app/oracle/oradata/ORCL/aebdpdb/pdata01.dbf' size 100M;
+create tablespace pdata datafile '/u02/app/oracle/oradata/ORCL/aebdpdb/pdata01.dbf' size 500M;
 
 # Verificar criação do tablespace
 select tablespace_name, con_id from cdb_tablespaces order by con_id;
@@ -59,7 +59,7 @@ select tablespace_name, con_id from cdb_tablespaces order by con_id;
 select file_name, con_id from cdb_data_files order by con_id;
 
 # Criar tablespace temporário
-create temporary tablespace temp_aebdpdb tempfile '/u02/app/oracle/oradata/ORCL/aebdpdb/temppdb01.dbf' size 100M;
+create temporary tablespace temp_aebdpdb tempfile '/u02/app/oracle/oradata/ORCL/aebdpdb/temppdb01.dbf' size 200M;
 
 # Verificar a criação do tablespace temporario
 select tablespace_name, con_id from cdb_tablespaces where contents='TEMPORARY';
@@ -109,8 +109,27 @@ sqlplus sys/Oradoc_db1 as sysdba
 # Atribuir grant
 grant create session to c##commonuser container=all;
 
-# Verificar a correta execução
+# Ligar à PDB aebdpdb.localdomain
+connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
+
+#Verificar connexão (AEBDPDB)
+show con_name
+
+# Atribui grant apenas no container atual
+grant CREATE ANY TABLE to c##commonuser; 
+grant SELECT ANY TABLE to c##commonuser; 
+
+# Connectar-se à CDB
+connect sys/Oradoc_db1 as sysdba
+
+#Verificar connexão (ROOT)
+show con_name
+
+# Verificar a correta execução (COM YES para create session e NO para create any table e select any table)
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE SESSION' and grantee='C##COMMONUSER';
+select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE ANY TABLE' and grantee='C##COMMONUSER';
+select grantee, privilege, common, con_id from cdb_sys_privs where privilege='SELECT ANY TABLE' and grantee='C##COMMONUSER';
+
 
 # Validar os privilegios do user criado na aebdpdb
 connect c##commonuser/oracle@localhost:1521/aebdpdb.localdomain
