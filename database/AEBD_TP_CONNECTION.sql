@@ -16,7 +16,7 @@ create table db (
     CONSTRAINT SQL_MONITOR_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
 );*/
 
-create table "users" (
+create table users (
     user_id int not null enable,
     db_id int,
     user_name varchar2(200),
@@ -27,7 +27,7 @@ create table "users" (
     CONSTRAINT USER_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
 );
 
-create table "privileges" (
+create table privileges (
     privilege_id int not null enable,
     name varchar2(200),
     CONSTRAINT PRIVILEGE_PK PRIMARY KEY (privilege_id)
@@ -38,14 +38,14 @@ create table users_privileges (
     user_id int,
     privilege_id int,
     CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (users_privileges_id),
-    CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id) REFERENCES "users"(user_id),
-    CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (privilege_id) REFERENCES "privileges"(privilege_id)
+    CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id) REFERENCES users(user_id),
+    CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (privilege_id) REFERENCES privileges(privilege_id)
 );
 
-create table "tablespaces" (
+create table tablespaces (
     tablespace_name varchar2(200) not null enable,
     db_id int,
-    size int,
+    sizeMB int,
     free int,
     used int,
     query_date timestamp,
@@ -53,14 +53,14 @@ create table "tablespaces" (
     CONSTRAINT TABLESPACE_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
 );
 
-create table "datafiles" (
+create table datafiles (
     file_id int not null enable,
     file_name varchar2(200),
     tablespace_name varchar2(200),
-    size int,
+    sizeMB int,
     free int,
     used int,
     query_date timestamp,
     CONSTRAINT DATAFILE_PK PRIMARY KEY (file_id),
-    CONSTRAINT DATAFILE_FK FOREIGN KEY (tablespace_name) REFERENCES "tablespaces"(tablespace_name)
+    CONSTRAINT DATAFILE_FK FOREIGN KEY (tablespace_name) REFERENCES tablespaces(tablespace_name)
 );
