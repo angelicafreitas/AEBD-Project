@@ -118,6 +118,8 @@ show con_name
 # Atribui grant apenas no container atual
 grant CREATE ANY TABLE to c##commonuser; 
 grant SELECT ANY TABLE to c##commonuser; 
+grant CREATE SEQUENCE to c##commonuser;
+grant INSERT ANY TABLE to c##commonuser;
 
 # Connectar-se à CDB
 connect sys/Oradoc_db1 as sysdba
@@ -129,10 +131,20 @@ show con_name
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE SESSION' and grantee='C##COMMONUSER';
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE ANY TABLE' and grantee='C##COMMONUSER';
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='SELECT ANY TABLE' and grantee='C##COMMONUSER';
-
+select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE SEQUENCE' and grantee='C##COMMONUSER';
+select grantee, privilege, common, con_id from cdb_sys_privs where privilege='INSERT ANY TABLE' and grantee='C##COMMONUSER';
 
 # Validar os privilegios do user criado na aebdpdb
 connect c##commonuser/oracle@localhost:1521/aebdpdb.localdomain
 
 # Confirmar
 select * from session_privs;
+
+# Ligar à PDB aebdpdb.localdomain
+connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
+
+# Atribuir quota no user
+alter user c##commonuser quota 50m on system;
+
+# Alterar default tablespace para pdata
+alter database default tablespace pdata;

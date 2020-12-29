@@ -1,8 +1,16 @@
+
+-- DROP TABLE datafiles;
+-- DROP TABLE tablespaces;
+-- DROP TABLE users_privileges;
+-- DROP TABLE privileges;
+-- DROP TABLE users;
+-- DROP TABLE db;
+
 create table db (
-  db_id int not null enable,
+  db_id int GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1),
   database_name varchar2(200),
   instance_name varchar2(200),
-  "version" varchar2(200),
+  version varchar2(200),
   CONSTRAINT db_PK PRIMARY KEY (db_id)
 );
 
