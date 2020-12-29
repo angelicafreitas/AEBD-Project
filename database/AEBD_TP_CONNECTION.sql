@@ -1,4 +1,5 @@
-
+-- DROP TABLE memory;
+-- DROP TABLE cpu;
 -- DROP TABLE datafiles;
 -- DROP TABLE tablespaces;
 -- DROP TABLE users_privileges;
@@ -72,4 +73,24 @@ create table datafiles (
     query_date timestamp,
     CONSTRAINT DATAFILE_PK PRIMARY KEY (file_id),
     CONSTRAINT DATAFILE_FK FOREIGN KEY (tablespace_name) REFERENCES tablespaces(tablespace_name)
+);
+
+create table cpu (
+    stat_name varchar2(200) not null enable,
+    db_id int,
+    value varchar2(200),
+    comments varchar2(200),
+    query_date timestamp,
+    CONSTRAINT CPU_PK PRIMARY KEY (stat_name),
+    CONSTRAINT CPU_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
+);
+
+create table memory (
+    memory_id INT GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1),
+    db_id int,
+    total int not null enable,
+    used int,
+    query_date timestamp,
+    CONSTRAINT MEMORY_PK PRIMARY KEY (memory_id),
+    CONSTRAINT MEMORY_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
 );
