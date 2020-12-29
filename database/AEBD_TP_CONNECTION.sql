@@ -8,11 +8,10 @@
 -- DROP TABLE db;
 
 create table db (
-  db_id int GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1),
-  database_name varchar2(200),
+  database_name varchar2(200) not null,
   instance_name varchar2(200),
   version varchar2(200),
-  CONSTRAINT db_PK PRIMARY KEY (db_id)
+  CONSTRAINT db_PK PRIMARY KEY (database_name)
 );
 
 /*create table sql_monitor (
@@ -27,13 +26,13 @@ create table db (
 
 create table users (
     user_id int not null enable,
-    db_id int,
+    database_name varchar2(200),
     user_name varchar2(200),
     default_tablespace varchar2(200),
     temporary_tablespace varchar2(200),
     query_date timestamp,
     CONSTRAINT USER_PK PRIMARY KEY (user_id),
-    CONSTRAINT USER_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
+    CONSTRAINT USER_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
 );
 
 create table privileges (
@@ -54,13 +53,13 @@ create table users_privileges (
 
 create table tablespaces (
     tablespace_name varchar2(200) not null enable,
-    db_id int,
+    database_name varchar2(200),
     sizeMB int,
     free int,
     used int,
     query_date timestamp,
     CONSTRAINT TABLESPACE_PK PRIMARY KEY (tablespace_name),
-    CONSTRAINT TABLESPACE_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
+    CONSTRAINT TABLESPACE_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
 );
 
 create table datafiles (
@@ -77,20 +76,20 @@ create table datafiles (
 
 create table cpu (
     stat_name varchar2(200) not null enable,
-    db_id int,
+    database_name varchar2(200),
     value varchar2(200),
     comments varchar2(200),
     query_date timestamp,
     CONSTRAINT CPU_PK PRIMARY KEY (stat_name),
-    CONSTRAINT CPU_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
+    CONSTRAINT CPU_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
 );
 
 create table memory (
     memory_id INT GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1),
-    db_id int,
+    database_name varchar2(200),
     total int not null enable,
     used int,
     query_date timestamp,
     CONSTRAINT MEMORY_PK PRIMARY KEY (memory_id),
-    CONSTRAINT MEMORY_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
+    CONSTRAINT MEMORY_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
 );

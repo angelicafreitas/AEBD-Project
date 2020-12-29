@@ -144,7 +144,7 @@ select * from session_privs;
 connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
 
 # Atribuir quota no user
-alter user c##commonuser quota 50m on system;
+alter user c##commonuser quota 50m on pdata;
 
 # Alterar default tablespace para pdata
 alter database default tablespace pdata;
