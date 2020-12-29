@@ -30,6 +30,7 @@ create table users (
 create table privileges (
     privilege_id int not null enable,
     name varchar2(200),
+    property int,
     CONSTRAINT PRIVILEGE_PK PRIMARY KEY (privilege_id)
 );
 
