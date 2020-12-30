@@ -13,6 +13,9 @@ TABLESPACES = []
 DATAFILES = []
 USERS = []
 PRIVILEGES = []
+USERS_PRIVILEGES = []
+CPU = []
+MEMORY = []
 
 # ----- ARGUMENT VALIDATION -----
 if sys.argv.__len__() != 5:
@@ -43,6 +46,7 @@ except Exception:
 # ----- ----- ------
 
 
+print(f'------------------------------------------------------------')
 print('Fetching data...')
 try:
     with orc.connect(USERNAME, PASSWORD, DSN, encoding=ENCODING) as db:
@@ -61,7 +65,7 @@ try:
             DB["database_name"]= database_name
             DB["instance_name"]= instance_name
             DB["version"]= version                        
-            print(f'\tdone!\n')
+    
             #----------------------------------------------------------------------------------
 
 
@@ -88,7 +92,7 @@ try:
                     "query_date": query_date
                 }       
                 TABLESPACES.append(tablespace)
-            print(f'\tdone!\n')
+    
             #----------------------------------------------------------------------------------
 
 
@@ -140,7 +144,7 @@ try:
                 }
                 TABLESPACES.append(tablespace)
                 DATAFILES.append(datafile)
-            print(f'\tdone!\n')
+    
             #----------------------------------------------------------------------------------
 
 
@@ -162,7 +166,7 @@ try:
                     "temporary_tablespace": temporary_tablespace
                 }
                 USERS.append(user)                
-            print(f'\tdone!\n')
+    
             #----------------------------------------------------------------------------------
 
 
@@ -181,13 +185,77 @@ try:
                     "property": property
                 }
                 PRIVILEGES.append(privilege)                
-            print(f'\tdone!\n')
+    
             #----------------------------------------------------------------------------------
 
+
+            # Data needed for Table "USERS_PRIVELEGES"
+            print(' > Fetching data for table USERS_PRIVILEGES...')
+            fetch_user_privileges_info = """
+                SELECT d1.USER_ID, SYSTEM_PRIVILEGE_MAP.PRIVILEGE "id_priv"
+                FROM dba_sys_privs d, DBA_USERS d1, SYSTEM_PRIVILEGE_MAP
+                WHERE d.PRIVILEGE = SYSTEM_PRIVILEGE_MAP.NAME
+                AND grantee = d1.USERNAME
+            """
+            cursor.execute(fetch_user_privileges_info)
+            
+            for user_id, privilege_id in cursor:
+                user_priv ={
+                    "user_id": user_id,
+                    "privilege_id": privilege_id
+                }
+                USERS_PRIVILEGES.append(user_priv)
+    
+
+            # Data needed for Table CPU -----------------------------------
+            print(' > Fetching data for table CPU...')
+            fetch_CPU_info = """
+                SELECT STAT_NAME, VALUE, COMMENTS, CURRENT_TIMESTAMP
+                FROM V$OSSTAT
+                WHERE ROWNUM < 10
+                AND STAT_NAME != 'RSRC_MGR_CPU_WAIT_TIME'               
+            """
+            cursor.execute(fetch_CPU_info)
+            for stat_name, value, comments, query_date in cursor:
+                cpu = {
+                    "stat_name": stat_name,
+                    "value": value,
+                    "comments": comments,
+                    "query_date": query_date
+                }
+                CPU.append(cpu)
+    
+        
+            # Data needed for Table MEMORY -----------------------------------
+            print(' > Fetching data for table MEMORY...')
+            fetch_memory_info = """
+                SELECT T as "TOTAL (MB)", U as "USED (MB)", CURRENT_TIMESTAMP
+                FROM dual
+                INNER JOIN (
+                    SELECT Round(sum(pga_max_mem)/1024/1024) "U", 'X' "DUMMY"
+                    FROM v$process
+                ) "PGA" ON dual.DUMMY = "PGA".DUMMY
+                INNER JOIN (
+                    SELECT  Round(sum(value)/1024/1024) "T", 'X' "DUMMY"
+                    FROM v$sga
+                ) "SGA" ON dual.DUMMY = "SGA".DUMMY
+            """
+            cursor.execute(fetch_memory_info)
+            for total, used, query_date in cursor:
+                memory = {
+                    "total":total,
+                    "used":used,
+                    "query_date": query_date
+                }
+                MEMORY.append(memory)
+
+            print(f'data fetched!')
 except Exception as e:
     raise e
+print(f'------------------------------------------------------------\n')
 
 
+print(f'------------------------------------------------------------')
 #Inserting values to AEBDPDB
 try:
     with orc.connect(config.dest_USERNAME, config.dest_PASSWORD, config.dest_DSN, encoding=ENCODING) as aedbpdb:
@@ -214,7 +282,7 @@ try:
             cursorAEBD.execute(f'INSERT INTO DB (database_name, instance_name,version)\n'
                                 f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
             aedbpdb.commit()
-            print(f'\tdone!\n')
+    
         
         #populating table TABLESPACES
         cursorAEBD = aedbpdb.cursor()
@@ -224,7 +292,7 @@ try:
             cursorAEBD.execute(f'INSERT INTO TABLESPACES (tablespace_name,database_name, sizemb,free, used, temporary, query_date)\n'
                             f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{tablespace["temporary"]},{tablespace_timestamp})')
         aedbpdb.commit()
-        print(f'\tdone!\n')
+
 
         #populating table DATAFILES
         cursorAEBD = aedbpdb.cursor()
@@ -234,7 +302,7 @@ try:
             cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, datafiles_query_date, query_date)\n'
                             f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{tablespace_timestamp},{timestamp})')
         aedbpdb.commit()
-        print(f'\tdone!\n')
+
 
         #populating table USERS
         cursorAEBD = aedbpdb.cursor()
@@ -249,12 +317,11 @@ try:
                 cursorAEBD.execute(f'INSERT INTO USERS (user_id, database_name, user_name, default_tablespace, temporary_tablespace)\n'
                                f'VALUES ({user["user_id"]},\'{DB["database_name"]}\',\'{user["user_name"]}\',\'{user["default_tablespace"]}\',\'{user["temporary_tablespace"]}\')')
         aedbpdb.commit()
-        print(f'\tdone!\n')
+
 
 
         #populating table PRIVILEGES
         cursorAEBD = aedbpdb.cursor()
-        
         #Checking if there are privileges in PRIVILEGES            
         cursorAEBD.execute(f'SELECT count(1)FROM PRIVILEGES\n')
         total, = cursorAEBD.fetchone()
@@ -265,65 +332,46 @@ try:
                 cursorAEBD.execute(f'INSERT INTO PRIVILEGES (privilege_id, name, property)\n'
                                f'VALUES ({privilege["privilege_id"]},\'{privilege["name"]}\',{privilege["property"]})')
         aedbpdb.commit()
-        print(f'\tdone!\n')
 
+
+        #populating table USERS_PRIVILEGES
+        cursorAEBD = aedbpdb.cursor()
+        print(f' > Populating table USERS_PRIVILEGES...')
+        for user_priv in USERS_PRIVILEGES:  
+            #Checking if user_priv is already in USERS_PRIVILEGES
+            cursorAEBD.execute(f'SELECT count(1) from USERS_PRIVILEGES where user_id={user_priv["user_id"]} and PRIVILEGE_ID={user_priv["privilege_id"]}')
+            total, = cursorAEBD.fetchone()
+            
+            if total == 0:
+                cursorAEBD.execute(f'INSERT INTO USERS_PRIVILEGES (user_id, privilege_id)\n'
+                               f'VALUES ({user_priv["user_id"]},{user_priv["privilege_id"]})')
+        aedbpdb.commit()
+
+
+
+        #populating table CPU
+        cursorAEBD = aedbpdb.cursor()
+        print(f' > Populating table CPU...')
+        for cpu in CPU:  
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{cpu["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO CPU (stat_name,database_name, value, comments, query_date)\n'
+                            f'VALUES (\'{cpu["stat_name"]}\',\'{DB["database_name"]}\',\'{cpu["value"]}\',\'{cpu["comments"]}\',{timestamp})')
+        aedbpdb.commit()
+
+
+        #populating table MEMORY
+        cursorAEBD = aedbpdb.cursor()
+        print(f' > Populating table MEMORY...')
+        for memory in MEMORY:  
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{memory["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO MEMORY (database_name, total, used, query_date)\n'
+                            f'VALUES (\'{DB["database_name"]}\', {memory["total"]},{memory["used"]},{timestamp})')
+        aedbpdb.commit()
+
+        print(f'------------------------------------------------------------')
 except Exception as e:
     print(f'HELLO {e}')
 
-                    
-            
-            # # Data needed for Table "USERS_PRIVELEGES"
-            # print(' > Fetching data for table USERS_PRIVILEGES...')
-            # fetch_user_privileges_info = """
-            #     SELECT d1.USER_ID, SYSTEM_PRIVILEGE_MAP.PRIVILEGE "id_priv"
-            #     FROM dba_sys_privs d, DBA_USERS d1, SYSTEM_PRIVILEGE_MAP
-            #     WHERE d.PRIVILEGE = SYSTEM_PRIVILEGE_MAP.NAME
-            #     AND grantee = d1.USERNAME
-            # """
-            # cursor.execute(fetch_user_privileges_info)
-            
-            # for user_id, privilege_id in cursor:
-            #     print(f'\tUser id: {user_id}')
-            #     print(f'\tPrivilege id: {privilege_id}')
-            #     print(f'\t-----')                
-            # # Data needed for Table CPU -----------------------------------
-            # print(' > Fetching data for table CPU...')
-            # fetch_CPU_info = """
-            #     SELECT STAT_NAME, VALUE, COMMENTS, CURRENT_TIMESTAMP
-            #     FROM V$OSSTAT
-            #     WHERE ROWNUM < 10
-            #     AND STAT_NAME != 'RSRC_MGR_CPU_WAIT_TIME'               
-            # """
-            # cursor.execute(fetch_CPU_info)
-            # for stat_name, value, comments, query_date in cursor:
-            #     print(f'\tStat name: {stat_name}')
-            #     print(f'\tValue: {value}')
-            #     print(f'\tComments: {comments}')
-            #     print(f'\tQuery date: {query_date}')
-            #     print(f'\t-----')                
-        
-            # # Data needed for Table MEMORY -----------------------------------
-            # print(' > Fetching data for table MEMORY...')
-            # fetch_memory_info = """
-            #     SELECT T as "TOTAL (MB)", U as "USED (MB)", CURRENT_TIMESTAMP
-            #     FROM dual
-            #     INNER JOIN (
-            #         SELECT Round(sum(pga_max_mem)/1024/1024) "U", 'X' "DUMMY"
-            #         FROM v$process
-            #     ) "PGA" ON dual.DUMMY = "PGA".DUMMY
-            #     INNER JOIN (
-            #         SELECT  Round(sum(value)/1024/1024) "T", 'X' "DUMMY"
-            #         FROM v$sga
-            #     ) "SGA" ON dual.DUMMY = "SGA".DUMMY
-            # """
-            # cursor.execute(fetch_memory_info)
-            # for total, used, query_date in cursor:
-            #     print(f'\tTotal (MB): {total}')
-            #     print(f'\tUsed (MB): {used}')
-            #     print(f'\tQuery date: {query_date}')
-            #     print(f'\t-----')                
-
-print('Data fetched!\n')
 
 
 

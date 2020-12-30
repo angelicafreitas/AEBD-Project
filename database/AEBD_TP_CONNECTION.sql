@@ -43,10 +43,9 @@ create table privileges (
 );
 
 create table users_privileges (
-    users_privileges_id int not null enable,
-    user_id int,
-    privilege_id int,
-    CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (users_privileges_id),
+    user_id int not null,
+    privilege_id int not null,
+    CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (user_id,privilege_id),
     CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id) REFERENCES users(user_id),
     CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (privilege_id) REFERENCES privileges(privilege_id)
 );
