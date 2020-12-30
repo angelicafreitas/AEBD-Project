@@ -12,6 +12,7 @@ DB = {"database_name": "", "instance_name": "", "version":""}
 TABLESPACES = []
 DATAFILES = []
 USERS = []
+PRIVILEGES = []
 
 # ----- ARGUMENT VALIDATION -----
 if sys.argv.__len__() != 5:
@@ -61,8 +62,10 @@ try:
             DB["instance_name"]= instance_name
             DB["version"]= version                        
             print(f'\tdone!\n')
+            #----------------------------------------------------------------------------------
 
-            # Data needed for table "TABLESPACE" (TEMPORARY) -----------------------------------
+
+            # Data needed for table "TABLESPACE" (TEMPORARY) ----------------------------------
             print(' > Fetching data for table TABLESPACE(TEMPORARY) ...')
             #Temporary tablespace
             fetch_tablespace_info = """
@@ -86,6 +89,8 @@ try:
                 }       
                 TABLESPACES.append(tablespace)
             print(f'\tdone!\n')
+            #----------------------------------------------------------------------------------
+
 
             # Data needed for Table "DATAFILES" -----------------------------------
             print(' > Fetching data for table DATAFILES...')
@@ -136,9 +141,10 @@ try:
                 TABLESPACES.append(tablespace)
                 DATAFILES.append(datafile)
             print(f'\tdone!\n')
+            #----------------------------------------------------------------------------------
 
 
-            # Data needed for Table USERS -----------------------------------
+            # Data needed for Table USERS --------------------------------------------------
             print(' > Fetching data for table USERS...')
             fetch_user_info = """
                 SELECT USER_ID,
@@ -157,7 +163,27 @@ try:
                 }
                 USERS.append(user)                
             print(f'\tdone!\n')
+            #----------------------------------------------------------------------------------
+
+
+            # Data needed for table PRIVILEGES ------------------------------------------------
+            print(' > Fetching data for table PRIVILEGES...')
+            fetch_privilege_info = """
+                SELECT PRIVILEGE, NAME, PROPERTY
+                FROM SYSTEM_PRIVILEGE_MAP         
+            """
+            cursor.execute(fetch_privilege_info)
             
+            for privilege_id, name, property in cursor:
+                privilege = {
+                    "privilege_id": privilege_id,
+                    "name": name,
+                    "property": property
+                }
+                PRIVILEGES.append(privilege)                
+            print(f'\tdone!\n')
+            #----------------------------------------------------------------------------------
+
 except Exception as e:
     raise e
 
@@ -210,8 +236,6 @@ try:
         aedbpdb.commit()
         print(f'\tdone!\n')
 
-
-
         #populating table USERS
         cursorAEBD = aedbpdb.cursor()
         print(f' > Populating table USERS...')
@@ -221,40 +245,32 @@ try:
                                 f'where USER_ID= {user["user_id"]}')
             total, = cursorAEBD.fetchone()
             
-
             if total == 0:
                 cursorAEBD.execute(f'INSERT INTO USERS (user_id, database_name, user_name, default_tablespace, temporary_tablespace)\n'
                                f'VALUES ({user["user_id"]},\'{DB["database_name"]}\',\'{user["user_name"]}\',\'{user["default_tablespace"]}\',\'{user["temporary_tablespace"]}\')')
         aedbpdb.commit()
         print(f'\tdone!\n')
 
+
+        #populating table PRIVILEGES
+        cursorAEBD = aedbpdb.cursor()
+        
+        #Checking if there are privileges in PRIVILEGES            
+        cursorAEBD.execute(f'SELECT count(1)FROM PRIVILEGES\n')
+        total, = cursorAEBD.fetchone()
+        
+        if total == 0:
+            print(f' > Populating table PRIVILEGES...')
+            for privilege in PRIVILEGES:  
+                cursorAEBD.execute(f'INSERT INTO PRIVILEGES (privilege_id, name, property)\n'
+                               f'VALUES ({privilege["privilege_id"]},\'{privilege["name"]}\',{privilege["property"]})')
+        aedbpdb.commit()
+        print(f'\tdone!\n')
+
 except Exception as e:
     print(f'HELLO {e}')
 
-        
-            
-            # for user_id, user_name, default_tablespace, temporary_tablespace, query_date in cursor:
-            #     print(f'\tUser id: {user_id}')
-            #     print(f'\tUser name: {user_name}')
-            #     print(f'\tDefault tablespace: {default_tablespace}')
-            #     print(f'\tTemporary tablespace: {temporary_tablespace}')
-            #     print(f'\tQuery date: {query_date}')
-            #     print(f'\t-----')                
-            
-            # # Data needed for Table "PRIVILEGES"
-            # print(' > Fetching data for table PRIVILEGES...')
-            # fetch_privilege_info = """
-            #     SELECT PRIVILEGE, NAME, PROPERTY
-            #     FROM SYSTEM_PRIVILEGE_MAP         
-            # """
-            # cursor.execute(fetch_privilege_info)
-            
-            # for privilege_id, name, property in cursor:
-            #     print(f'\tPrivilege id: {privilege_id}')
-            #     print(f'\tName: {name}')
-            #     print(f'\tProperty: {property}')
-            #     print(f'\t-----')                
-            # #----------------------------------------------------------------------------------
+                    
             
             # # Data needed for Table "USERS_PRIVELEGES"
             # print(' > Fetching data for table USERS_PRIVILEGES...')
