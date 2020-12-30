@@ -10,6 +10,7 @@ ENCODING = "UTF-8"
 
 DB = {"database_name": "", "instance_name": "", "version":""}
 TABLESPACES = []
+DATAFILES = []
 
 # ----- ARGUMENT VALIDATION -----
 if sys.argv.__len__() != 5:
@@ -60,26 +61,79 @@ try:
             DB["version"]= version                        
             print(f'\tdone!\n')
 
-            # Data needed for table "TABLESPACE" -----------------------------------
-            print(' > Fetching data for table TABLESPACE...')
+            # Data needed for table "TABLESPACE" (TEMPORARY) -----------------------------------
+            print(' > Fetching data for table TABLESPACE(TEMPORARY) ...')
+            #Temporary tablespace
             fetch_tablespace_info = """
-                SELECT TABLESPACE_NAME "NAME",
-                        Round(TABLESPACE_SIZE * (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "sizeMB",
-                        Round((TABLESPACE_SIZE-USED_SPACE)* (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "free",
-                        Round(USED_SPACE * (SELECT VALUE FROM v$parameter v WHERE name = 'db_block_size')/1024/1024,0) "used",
-                        CURRENT_TIMESTAMP  "query_date"
-                FROM DBA_TABLESPACE_USAGE_METRICS
+                SELECT TABLESPACE_NAME,
+                        Round(TABLESPACE_SIZE/1024/1024,0) "SIZE",
+                        Round(FREE_SPACE/1024/1024,0) "FREE",
+                        Round(ALLOCATED_SPACE/1024/1024,0) "USED",
+                        1 "TEMPORARY",
+                        CURRENT_TIMESTAMP
+                FROM DBA_TEMP_FREE_SPACE
             """
             cursor.execute(fetch_tablespace_info)
-            for tablespace_name, sizeMB, free, used, query_date in cursor:   
+            for tablespace_name, sizeMB, free, used, temporary, query_date in cursor:   
                 tablespace = {
                     "tablespace_name": tablespace_name,
                     "sizeMB": sizeMB,
                     "free": free,
                     "used": used,
+                    "temporary": temporary,
                     "query_date": query_date
                 }       
                 TABLESPACES.append(tablespace)
+            print(f'\tdone!\n')
+
+            # Data needed for Table "DATAFILES" -----------------------------------
+            print(' > Fetching data for table DATAFILES...')
+            fetch_datafile_info = """
+                SELECT  df.FILE_ID "file_id",
+                        Substr(df.file_name,1,80) "file_name",
+                        Substr(df.tablespace_name,1,20) "tablespace_name",
+                        Round(df.bytes/1024/1024,0) "sizeMB",
+                        decode(f.free_bytes,NULL,0,Round(f.free_bytes/1024/1024,0)) "free",
+                        decode(e.used_bytes,NULL,0,Round(e.used_bytes/1024/1024,0)) "used",
+                        0 "TEMPORARY",
+                        CURRENT_TIMESTAMP "query_date"
+                FROM    DBA_DATA_FILES DF,
+                    (SELECT file_id,
+                            sum(bytes) used_bytes
+                        FROM dba_extents
+                        GROUP by file_id) E,
+                    (SELECT sum(bytes) free_bytes,
+                            file_id
+                        FROM dba_free_space
+                        GROUP BY file_id) f
+                WHERE    e.file_id (+) = df.file_id
+                AND      df.file_id  = f.file_id (+)
+                ORDER BY df.tablespace_name,
+                        df.file_name               
+            """                
+            cursor.execute(fetch_datafile_info)
+            
+            for file_id, file_name, tablespace_name, sizeMB, free, used, temporary, query_date in cursor:
+                datafile = {
+                    "file_id": file_id,
+                    "file_name": file_name,
+                    "tablespace_name": tablespace_name,
+                    "sizeMB": sizeMB,
+                    "free": free,
+                    "used": used,
+                    "temporary": temporary,
+                    "query_date": query_date
+                }
+                tablespace = {
+                    "tablespace_name": tablespace_name,
+                    "sizeMB": sizeMB,
+                    "free": free,
+                    "used": used,
+                    "temporary": temporary,
+                    "query_date": query_date                    
+                }
+                TABLESPACES.append(tablespace)
+                DATAFILES.append(datafile)
             print(f'\tdone!\n')
 
 except Exception as e:
@@ -104,8 +158,19 @@ try:
         print(f' > Populating table TABLESPACES...')
         for tablespace in TABLESPACES:  
             timestamp = f'(SELECT TO_TIMESTAMP (\'{tablespace["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
-            cursorAEBD.execute(f'INSERT INTO TABLESPACES (tablespace_name,database_name, sizemb,free, used, query_date)\n'
-                            f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{timestamp})')
+            cursorAEBD.execute(f'INSERT INTO TABLESPACES (tablespace_name,database_name, sizemb,free, used, temporary, query_date)\n'
+                            f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{tablespace["temporary"]},{timestamp})')
+        aedbpdb.commit()
+        print(f'\tdone!\n')
+
+        #populating table DATAFILES
+        cursorAEBD = aedbpdb.cursor()
+        cursorAEBD.execute('SELECT * FROM TABLESPACES')
+        print(f' > Populating table DATAFILES...')
+        for datafile in DATAFILES:  
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, query_date)\n'
+                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{timestamp})')
         aedbpdb.commit()
         print(f'\tdone!\n')
 
@@ -114,42 +179,7 @@ except Exception as e:
 
             
             
-            # # Data needed for Table "DATAFILES" -----------------------------------
-            # print('\n')
-            # print(' > Fetching data for table DATAFILES...')
-            # fetch_datafile_info = """
-            #     SELECT  df.FILE_ID "file_id",
-            #             Substr(df.file_name,1,80) "file_name",
-            #             Substr(df.tablespace_name,1,20) "tablespace_name",
-            #             Round(df.bytes/1024/1024,0) "sizeMB",
-            #             decode(f.free_bytes,NULL,0,Round(f.free_bytes/1024/1024,0)) "free",
-            #             decode(e.used_bytes,NULL,0,Round(e.used_bytes/1024/1024,0)) "used",
-            #             CURRENT_TIMESTAMP "query_date"
-            #     FROM    DBA_DATA_FILES DF,
-            #         (SELECT file_id,
-            #                 sum(bytes) used_bytes
-            #             FROM dba_extents
-            #             GROUP by file_id) E,
-            #         (SELECT sum(bytes) free_bytes,
-            #                 file_id
-            #             FROM dba_free_space
-            #             GROUP BY file_id) f
-            #     WHERE    e.file_id (+) = df.file_id
-            #     AND      df.file_id  = f.file_id (+)
-            #     ORDER BY df.tablespace_name,
-            #             df.file_name               
-            # """                
-            # cursor.execute(fetch_datafile_info)
-            
-            # for file_id, file_name, tablespace_name, sizeMB, free, used, query_date in cursor:
-            #     print(f'\tFile id: {file_id}')
-            #     print(f'\tFile name: {file_name}')
-            #     print(f'\tTablespace name: {tablespace_name}')
-            #     print(f'\tSize: {sizeMB}')
-            #     print(f'\tFree (MB): {free}')
-            #     print(f'\tUsed (MB): {used}')
-            #     print(f'\tQuery date: {query_date}')
-            #     print(f'\t-----')                
+  
             
             
             

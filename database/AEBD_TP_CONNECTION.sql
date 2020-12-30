@@ -57,6 +57,7 @@ create table tablespaces (
     sizeMB int,
     free int,
     used int,
+    temporary number(1),
     query_date timestamp,
     CONSTRAINT TABLESPACE_PK PRIMARY KEY (tablespace_name),
     CONSTRAINT TABLESPACE_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
