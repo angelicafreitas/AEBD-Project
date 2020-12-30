@@ -11,6 +11,7 @@ ENCODING = "UTF-8"
 DB = {"database_name": "", "instance_name": "", "version":""}
 TABLESPACES = []
 DATAFILES = []
+USERS = []
 
 # ----- ARGUMENT VALIDATION -----
 if sys.argv.__len__() != 5:
@@ -136,8 +137,36 @@ try:
                 DATAFILES.append(datafile)
             print(f'\tdone!\n')
 
+
+
+            # Data needed for Table USERS -----------------------------------
+            print(' > Fetching data for table USERS...')
+            fetch_user_info = """
+                SELECT USER_ID,
+                        USERNAME,
+                        DEFAULT_TABLESPACE,
+                        TEMPORARY_TABLESPACE,
+                        CURRENT_TIMESTAMP
+                FROM DBA_USERS
+            """
+            cursor.execute(fetch_user_info)
+            
+            for user_id, user_name, default_tablespace, temporary_tablespace, query_date in cursor:
+                user = {
+                    "user_id": tablespace_name,
+                    "user_name": sizeMB,
+                    "default_tablespace": free,
+                    "temporary_tablespace": used,
+                    "query_date": query_date                    
+                }
+                USERS.append(user)                
+            print(f'\tdone!\n')
+
 except Exception as e:
     raise e
+
+
+
 
 #Inserting values to AEBDPDB
 try:
@@ -149,7 +178,7 @@ try:
         #Changing timestamp format to contain fractional numbers
         cursorAEBD.execute('ALTER SESSION SET NLS_TIMESTAMP_FORMAT = \'YYYY-MM-DD HH:MI:SS.FF\'')
         aedbpdb.commit()
-        
+
         cursorAEBD = aedbpdb.cursor()
         #Checking if db is already in DB
         print(f' > Check db in DB...')                         
@@ -161,6 +190,7 @@ try:
             print(f'\tDatabase already in table DB!')
         else:
             #populating table DB
+            print(f' > Database isn\'t in table DB')            
             print(f' > Populating table DB...')                         
             cursorAEBD.execute(f'INSERT INTO DB (database_name, instance_name,version)\n'
                                 f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
@@ -188,26 +218,22 @@ try:
         aedbpdb.commit()
         print(f'\tdone!\n')
 
+
+        #populating table USERS
+        cursorAEBD = aedbpdb.cursor()
+        cursorAEBD.execute('SELECT * FROM TABLESPACES')
+        print(f' > Populating table DATAFILES...')
+        for datafile in DATAFILES:  
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, datafiles_query_date, query_date)\n'
+                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{tablespace_timestamp},{timestamp})')
+        aedbpdb.commit()
+        print(f'\tdone!\n')
+
 except Exception as e:
     print(f'HELLO {e}')
 
-            
-            
-  
-            
-            
-            
-            # # Data needed for Table USERS -----------------------------------
-            # print(' > Fetching data for table USERS...')
-            # fetch_user_info = """
-            #     SELECT USER_ID,
-            #             USERNAME,
-            #             DEFAULT_TABLESPACE,
-            #             TEMPORARY_TABLESPACE,
-            #             CURRENT_TIMESTAMP
-            #     FROM DBA_USERS
-            # """
-            # cursor.execute(fetch_user_info)
+        
             
             # for user_id, user_name, default_tablespace, temporary_tablespace, query_date in cursor:
             #     print(f'\tUser id: {user_id}')

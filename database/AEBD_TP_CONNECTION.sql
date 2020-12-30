@@ -6,6 +6,7 @@
 -- DROP TABLE privileges;
 -- DROP TABLE users;
 -- DROP TABLE db;
+-- commit;
 
 create table db (
   database_name varchar2(200) not null,
@@ -30,8 +31,7 @@ create table users (
     user_name varchar2(200),
     default_tablespace varchar2(200),
     temporary_tablespace varchar2(200),
-    query_date timestamp not null,
-    CONSTRAINT USER_PK PRIMARY KEY (user_id,query_date),
+    CONSTRAINT USER_PK PRIMARY KEY (user_id),
     CONSTRAINT USER_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
 );
 
@@ -45,10 +45,9 @@ create table privileges (
 create table users_privileges (
     users_privileges_id int not null enable,
     user_id int,
-    query_date timestamp,
     privilege_id int,
     CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (users_privileges_id),
-    CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id, query_date) REFERENCES users(user_id, query_date),
+    CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id) REFERENCES users(user_id),
     CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (privilege_id) REFERENCES privileges(privilege_id)
 );
 
