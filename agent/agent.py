@@ -146,7 +146,11 @@ try:
         
         print(f'Inserting values to AEBDPDB...')
 
-
+        #Changing timestamp format to contain fractional numbers
+        cursorAEBD.execute('ALTER SESSION SET NLS_TIMESTAMP_FORMAT = \'YYYY-MM-DD HH:MI:SS.FF\'')
+        aedbpdb.commit()
+        
+        cursorAEBD = aedbpdb.cursor()
         #Checking if db is already in DB
         print(f' > Check db in DB...')                         
         cursorAEBD.execute(f'select count(1) as total from db\n'
@@ -167,9 +171,9 @@ try:
         cursorAEBD = aedbpdb.cursor()
         print(f' > Populating table TABLESPACES...')
         for tablespace in TABLESPACES:  
-            timestamp = f'(SELECT TO_TIMESTAMP (\'{tablespace["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            tablespace_timestamp = f'(SELECT TO_TIMESTAMP (\'{tablespace["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
             cursorAEBD.execute(f'INSERT INTO TABLESPACES (tablespace_name,database_name, sizemb,free, used, temporary, query_date)\n'
-                            f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{tablespace["temporary"]},{timestamp})')
+                            f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{tablespace["temporary"]},{tablespace_timestamp})')
         aedbpdb.commit()
         print(f'\tdone!\n')
 
@@ -178,9 +182,9 @@ try:
         cursorAEBD.execute('SELECT * FROM TABLESPACES')
         print(f' > Populating table DATAFILES...')
         for datafile in DATAFILES:  
-            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
-            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, query_date)\n'
-                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{timestamp})')
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, datafiles_query_date, query_date)\n'
+                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{tablespace_timestamp},{timestamp})')
         aedbpdb.commit()
         print(f'\tdone!\n')
 
