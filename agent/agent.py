@@ -146,12 +146,22 @@ try:
         
         print(f'Inserting values to AEBDPDB...')
 
-        #populating table DB
-        print(f' > Populating table DB...')                         
-        cursorAEBD.execute(f'INSERT INTO DB (database_name, instance_name,version)\n'
-                            f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
-        aedbpdb.commit()
-        print(f'\tdone!\n')
+
+        #Checking if db is already in DB
+        print(f' > Check db in DB...')                         
+        cursorAEBD.execute(f'select count(1) as total from db\n'
+                            f'where DATABASE_NAME= \'{DB["database_name"]}\'')
+        total, = cursorAEBD.fetchone()
+        
+        if total == 1:
+            print(f'\tDatabase already in table DB!')
+        else:
+            #populating table DB
+            print(f' > Populating table DB...')                         
+            cursorAEBD.execute(f'INSERT INTO DB (database_name, instance_name,version)\n'
+                                f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
+            aedbpdb.commit()
+            print(f'\tdone!\n')
         
         #populating table TABLESPACES
         cursorAEBD = aedbpdb.cursor()
