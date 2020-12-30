@@ -138,34 +138,28 @@ try:
             print(f'\tdone!\n')
 
 
-
             # Data needed for Table USERS -----------------------------------
             print(' > Fetching data for table USERS...')
             fetch_user_info = """
                 SELECT USER_ID,
                         USERNAME,
                         DEFAULT_TABLESPACE,
-                        TEMPORARY_TABLESPACE,
-                        CURRENT_TIMESTAMP
+                        TEMPORARY_TABLESPACE
                 FROM DBA_USERS
             """
             cursor.execute(fetch_user_info)
-            
-            for user_id, user_name, default_tablespace, temporary_tablespace, query_date in cursor:
+            for user_id, user_name, default_tablespace, temporary_tablespace in cursor:
                 user = {
-                    "user_id": tablespace_name,
-                    "user_name": sizeMB,
-                    "default_tablespace": free,
-                    "temporary_tablespace": used,
-                    "query_date": query_date                    
+                    "user_id": user_id,
+                    "user_name": user_name,
+                    "default_tablespace": default_tablespace,
+                    "temporary_tablespace": temporary_tablespace
                 }
                 USERS.append(user)                
             print(f'\tdone!\n')
-
+            
 except Exception as e:
     raise e
-
-
 
 
 #Inserting values to AEBDPDB
@@ -181,7 +175,6 @@ try:
 
         cursorAEBD = aedbpdb.cursor()
         #Checking if db is already in DB
-        print(f' > Check db in DB...')                         
         cursorAEBD.execute(f'select count(1) as total from db\n'
                             f'where DATABASE_NAME= \'{DB["database_name"]}\'')
         total, = cursorAEBD.fetchone()
@@ -190,7 +183,7 @@ try:
             print(f'\tDatabase already in table DB!')
         else:
             #populating table DB
-            print(f' > Database isn\'t in table DB')            
+            print(f' > Database isn\'t in table DB')
             print(f' > Populating table DB...')                         
             cursorAEBD.execute(f'INSERT INTO DB (database_name, instance_name,version)\n'
                                 f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
@@ -209,7 +202,6 @@ try:
 
         #populating table DATAFILES
         cursorAEBD = aedbpdb.cursor()
-        cursorAEBD.execute('SELECT * FROM TABLESPACES')
         print(f' > Populating table DATAFILES...')
         for datafile in DATAFILES:  
             timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF\') FROM dual)'
@@ -219,14 +211,20 @@ try:
         print(f'\tdone!\n')
 
 
+
         #populating table USERS
         cursorAEBD = aedbpdb.cursor()
-        cursorAEBD.execute('SELECT * FROM TABLESPACES')
-        print(f' > Populating table DATAFILES...')
-        for datafile in DATAFILES:  
-            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF\') FROM dual)'
-            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, datafiles_query_date, query_date)\n'
-                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{tablespace_timestamp},{timestamp})')
+        print(f' > Populating table USERS...')
+        for user in USERS:  
+            #Checking if user is already in USERS
+            cursorAEBD.execute(f'select count(1) as total from USERS\n'
+                                f'where USER_ID= {user["user_id"]}')
+            total, = cursorAEBD.fetchone()
+            
+
+            if total == 0:
+                cursorAEBD.execute(f'INSERT INTO USERS (user_id, database_name, user_name, default_tablespace, temporary_tablespace)\n'
+                               f'VALUES ({user["user_id"]},\'{DB["database_name"]}\',\'{user["user_name"]}\',\'{user["default_tablespace"]}\',\'{user["temporary_tablespace"]}\')')
         aedbpdb.commit()
         print(f'\tdone!\n')
 

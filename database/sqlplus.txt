@@ -108,6 +108,8 @@ sqlplus sys/Oradoc_db1 as sysdba
 
 # Atribuir grant
 grant create session to c##commonuser container=all;
+GRANT SELECT ON dba_users TO c##commonuser container=all;
+
 
 # Ligar à PDB aebdpdb.localdomain
 connect sys/Oradoc_db1@localhost:1521/aebdpdb.localdomain as sysdba
@@ -127,7 +129,7 @@ connect sys/Oradoc_db1 as sysdba
 #Verificar connexão (ROOT)
 show con_name
 
-# Verificar a correta execução (COM YES para create session e NO para create any table e select any table)
+# Verificar a correta execução (COM YES para create session e NO para restantes)
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE SESSION' and grantee='C##COMMONUSER';
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='CREATE ANY TABLE' and grantee='C##COMMONUSER';
 select grantee, privilege, common, con_id from cdb_sys_privs where privilege='SELECT ANY TABLE' and grantee='C##COMMONUSER';
