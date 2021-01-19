@@ -12,7 +12,7 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '7070');
+var port = normalizePort(process.env.PORT || '7050');
 app.set('port', port);
 
 /**
@@ -83,15 +83,15 @@ function onError(error) {
 
 function onListening() {
   console.log("Servidor à escuta na porta " + port)
-  console.log("GETS:")
-  console.log("/cpu")
-  console.log("/datafiles")
-  console.log("/db")
-  console.log("/memory")
-  console.log("/privileges")
-  console.log("/tablespaces")
-  console.log("/users")
-  console.log("/users_privileges")
+  console.log(" - GETS:")
+  console.log("\t/cpu")
+  console.log("\t/datafiles")
+  console.log("\t/db")
+  console.log("\t/memory")
+  console.log("\t/privileges")
+  console.log("\t/tablespaces")
+  console.log("\t/users")
+  console.log("\t/users_privileges\n")
 
   
   

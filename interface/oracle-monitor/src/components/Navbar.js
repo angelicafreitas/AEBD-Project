@@ -5,7 +5,12 @@ import { VscPulse } from "react-icons/vsc";
 import { MdStorage } from "react-icons/md";
 import { FaUsers } from "react-icons/fa";
 
-function App(props) {
+import {useState} from 'react'
+
+function NavbarComp(props) {
+
+  const [selected, setSelected] = useState(1)
+
   return (
     <div className="App">
       <Navbar bg="dark" variant="dark">
@@ -19,15 +24,16 @@ function App(props) {
           />{' '}
           Oracle Monitor
         </Navbar.Brand>
-        <Nav className="mr-auto ml-3">
-          <Nav.Link className="ml-3" href="/system" active={props.option == "system"}>System <VscPulse /></Nav.Link>
-          <Nav.Link className="ml-3" href="/storage" active={props.option == "storage"}>Storage <MdStorage /></Nav.Link>
-          <Nav.Link className="ml-3" href="/users" active={props.option == "users"}>Users <FaUsers /></Nav.Link>
-        </Nav>
-
+        {props.showLinks && 
+          <Nav className="mr-auto ml-3" activeKey={1}>
+            <Nav.Link eventKey={1} onClick={() => setSelected(1)} className="ml-3" href="/system">System <VscPulse /></Nav.Link>
+            <Nav.Link eventKey={2} onClick={() => setSelected(2)} className="ml-3" href="/storage">Storage <MdStorage /></Nav.Link>
+            <Nav.Link eventKey={3} onClick={() => setSelected(3)} className="ml-3" href="/users">Users <FaUsers /></Nav.Link>
+          </Nav>
+        }
       </Navbar>
     </div>
   );
 }
 
-export default App;
+export default NavbarComp;
