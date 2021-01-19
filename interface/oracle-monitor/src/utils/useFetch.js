@@ -27,7 +27,7 @@ const useFetch = (url) => {
         } else {
           // auto catches network / connection error
           setIsPending(false);
-          setError(JSON.stringify(err));
+          setError(err.message);
         }
       })
     }, 1000);

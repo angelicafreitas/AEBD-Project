@@ -2,8 +2,10 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Navbar from './components/Navbar'
 import DBSelector from './components/DBSelector'
+import Monitor from './components/Monitor'
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import { AnimateOnChange } from 'react-animation'
+
 
 function App() {
   return (
@@ -13,15 +15,8 @@ function App() {
             <Route exact path="/">
               <DBSelector />
             </Route>
-            <Route path="selected/system">
-            <Navbar option="system"/>
-              System
-            </Route>
-            <Route path="/storage">
-              Storage
-            </Route>
-            <Route path="/users">
-              Users
+            <Route path="/monitor/:db_name">
+              <Monitor path="/monitor"/>
             </Route>
             <Route>
               ERROR 404

@@ -45,15 +45,15 @@ router.get('/tablespaces', function(req, res, next) {
 });
 
 //get USERS
-router.get('/users', function(req, res, next) {
-  dbConnection.run('SELECT * FROM USERS')
+router.get('/users/:db_name', function(req, res, next) {
+  dbConnection.run("SELECT * FROM USERS WHERE DATABASE_NAME=\'"+ req.params.db_name + "\' order by USER_ID")
   .then(data => res.jsonp(data.rows))
   .catch(err => res.status(400).jsonp(err));
 });
 
-//get USERS_PRIVILEGES
-router.get('/users_privileges', function(req, res, next) {
-  dbConnection.run('SELECT * FROM USERS_PRIVILEGES')
+//get PRIVILEGES FROM USER
+router.get('/users_privileges/:user_id', function(req, res, next) {
+  dbConnection.run('select name from privileges p where p.privilege_id in (select privilege_id from users_privileges where user_id='+ req.params.user_id +')')
   .then(data => res.jsonp(data.rows))
   .catch(err => res.status(400).jsonp(err));
 });
