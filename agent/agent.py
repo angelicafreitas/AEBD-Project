@@ -64,7 +64,7 @@ try:
             
             DB["database_name"]= database_name
             DB["instance_name"]= instance_name
-            DB["version"]= version                        
+            DB["version"]= version  
     
             #----------------------------------------------------------------------------------
 
@@ -283,7 +283,6 @@ try:
                                 f'VALUES (\'{DB["database_name"]}\',\'{DB["instance_name"]}\',\'{DB["version"]}\')')
             aedbpdb.commit()
     
-        
         #populating table TABLESPACES
         cursorAEBD = aedbpdb.cursor()
         print(f' > Populating table TABLESPACES...')
