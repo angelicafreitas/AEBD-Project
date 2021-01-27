@@ -16,6 +16,7 @@ PRIVILEGES = []
 USERS_PRIVILEGES = []
 CPU = []
 MEMORY = []
+SESSIONS = []
 
 # ----- ARGUMENT VALIDATION -----
 if sys.argv.__len__() != 5:
@@ -249,6 +250,26 @@ try:
                 }
                 MEMORY.append(memory)
 
+            # Data needed for table SESSIONS ------------------------------------------------
+            print(' > Fetching data for table SESSIONS...')
+            fetch_session_info = """
+                SELECT SID, USER#, STATUS, LOGON_TIME, LAST_CALL_ET, CURRENT_TIMESTAMP 
+                FROM v$session
+            """
+            cursor.execute(fetch_session_info)
+            
+            for session_id, user_id, status, longon_time, last_call_et, query_date in cursor:
+                session = {
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "session_status": status,
+                    "logon_time": longon_time,
+                    "last_call_et": last_call_et,
+                    "query_date": query_date
+                }
+                SESSIONS.append(session)                
+            #----------------------------------------------------------------------------------
+
             print(f'data fetched!')
 except Exception as e:
     raise e
@@ -367,16 +388,20 @@ try:
                             f'VALUES (\'{DB["database_name"]}\', {memory["total"]},{memory["used"]},{timestamp})')
         aedbpdb.commit()
 
+        
+        #populating table "session"
+        cursorAEBD = aedbpdb.cursor()
+        print(f' > Populating table "session"...')
+        for session in SESSIONS:  
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{session["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            logon= f'(SELECT TO_DATE(\'{session["logon_time"]}\', \'YYYY-MM-DD HH:MI:SS\') FROM dual)'
+            cursorAEBD.execute(f'INSERT INTO "session" (session_id, user_id,session_status,logon_time, last_call_et, query_date)\n'
+                            f'VALUES ({session["session_id"]}, {session["user_id"]},\'{session["session_status"]}\',{logon},{session["last_call_et"]},{timestamp})')
+        aedbpdb.commit()
+
         print(f'------------------------------------------------------------')
 except Exception as e:
     print(f'HELLO {e}')
 
 
 
-
-# SQL but it shows more sql than it should
-# select v.SQL_FULLTEXT, v.FIRST_LOAD_TIME, v.CON_ID, v.ELAPSED_TIME, v.EXECUTIONS, v.SERVICE, v.PARSING_USER_ID 
-# FROM v$sql v
-# WHERE v.SERVICE='orclpdb1.localdomain'
-# AND v.PARSING_USER_ID!=0
-# ORDER BY v.FIRST_LOAD_TIME DESC;

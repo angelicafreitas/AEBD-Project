@@ -32,7 +32,9 @@ function NavbarComp(props) {
             <Nav.Link eventKey={3} className="ml-3" href={"http://localhost:3000" + props.path + "/users"}>Users <FaUsers /></Nav.Link>
           </Nav>
         }
+        <span style={{"font-weight": "600", "color": "white"}}>{props.selectedDB}</span>
       </Navbar>
+      
     </div>
   );
 }

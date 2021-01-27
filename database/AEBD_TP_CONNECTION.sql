@@ -6,6 +6,7 @@
 -- DROP TABLE privileges;
 -- DROP TABLE users;
 -- DROP TABLE db;
+-- DROP TABLE "session"
 -- commit;
 
 create table db (
@@ -14,16 +15,6 @@ create table db (
   version varchar2(200),
   CONSTRAINT db_PK PRIMARY KEY (database_name)
 );
-
-/*create table sql_monitor (
-    sql_monitor_id int not null enable,
-    db_id int,
-    sql_text varchar2(200),
-    pdb varchar2(200),
-    query_date timestamp,
-    CONSTRAINT SQL_MONITOR_PK PRIMARY KEY (sql_monitor_id),
-    CONSTRAINT SQL_MONITOR_FK FOREIGN KEY (db_id) REFERENCES db(db_id)
-);*/
 
 create table users (
     user_id int not null enable,
@@ -93,4 +84,16 @@ create table memory (
     query_date timestamp not null ,
     CONSTRAINT MEMORY_PK PRIMARY KEY (memory_id, query_date),
     CONSTRAINT MEMORY_FK FOREIGN KEY (database_name) REFERENCES db(database_name)
+);
+
+create table "session" (
+    session_id INT not null enable,
+    user_id INT not null,
+    session_status varchar2(70) not null enable,
+    logon_time date,
+    last_call_et number,
+    query_date timestamp not null ,
+    CONSTRAINT SESSION_PK PRIMARY KEY (session_id, query_date),
+    CONSTRAINT SESSION_FK FOREIGN KEY (user_id) REFERENCES users(user_id)
+
 );

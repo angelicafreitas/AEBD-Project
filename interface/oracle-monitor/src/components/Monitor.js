@@ -14,15 +14,15 @@ export default function(props){
         <>
             <Switch>
                 <Route path={`${props.path}/:db_name/system`}>
-                    <Navbar selected={1} showLinks={true} path={props.path + "/" + params.db_name}/>
+                    <Navbar selectedDB={params.db_name} selected={1} showLinks={true} path={props.path + "/" + params.db_name}/>
                     <SystemStats db={params.db_name}/>
                 </Route>
                 <Route path={`${props.path}/:db_name/storage`}>
-                    <Navbar selected={2} showLinks={true} path={props.path + "/" + params.db_name}/>
+                    <Navbar selectedDB={params.db_name} selected={2} showLinks={true} path={props.path + "/" + params.db_name}/>
                     <StorageStats db={params.db_name}/>                    
                 </Route>    
                 <Route path={`${props.path}/:db_name/users`}>
-                    <Navbar selected={3} showLinks={true} path={props.path + "/" + params.db_name}/>
+                    <Navbar selectedDB={params.db_name} selected={3} showLinks={true} path={props.path + "/" + params.db_name}/>
                     <UsersStats db={params.db_name}/>
                 </Route>
             </Switch>
