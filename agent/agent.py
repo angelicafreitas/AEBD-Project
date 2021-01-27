@@ -133,7 +133,7 @@ try:
                     "free": free,
                     "used": used,
                     "temporary": temporary,
-                    "query_date": query_date
+                    "query_date": query_date                    
                 }
                 tablespace = {
                     "tablespace_name": tablespace_name,
@@ -313,16 +313,24 @@ try:
                             f'VALUES (\'{tablespace["tablespace_name"]}\',\'{DB["database_name"]}\',{tablespace["sizeMB"]},{tablespace["free"]},{tablespace["used"]},{tablespace["temporary"]},{tablespace_timestamp})')
         aedbpdb.commit()
 
-
         #populating table DATAFILES
         cursorAEBD = aedbpdb.cursor()
         print(f' > Populating table DATAFILES...')
-        for datafile in DATAFILES:  
-            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF\') FROM dual)'
-            cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, datafiles_query_date, query_date)\n'
-                            f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{tablespace_timestamp},{timestamp})')
-        aedbpdb.commit()
+        for datafile in DATAFILES: 
+            cursorAEBD.execute(f'SELECT count(1) from datafiles where file_id={datafile["file_id"]}')
+            total, = cursorAEBD.fetchone()
 
+            timestamp = f'(SELECT TO_TIMESTAMP (\'{datafile["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
+            
+            if total == 0: 
+                cursorAEBD.execute(f'INSERT INTO DATAFILES (file_id, file_name, tablespace_name, sizeMB, free, used, query_date)\n'
+                                f'VALUES ({datafile["file_id"]},\'{datafile["file_name"]}\',\'{datafile["tablespace_name"]}\',{datafile["sizeMB"]},{datafile["free"]},{datafile["used"]},{timestamp})')
+            else: 
+                cursorAEBD.execute(f'UPDATE DATAFILES\n'
+                                f'SET file_name=\'{datafile["file_name"]}\',tablespace_name=\'{datafile["tablespace_name"]}\',sizeMB={datafile["sizeMB"]},free={datafile["free"]},used={datafile["used"]}\n'
+                                f'WHERE file_id={datafile["file_id"]}')
+
+        aedbpdb.commit()
 
         #populating table USERS
         cursorAEBD = aedbpdb.cursor()
@@ -393,10 +401,18 @@ try:
         cursorAEBD = aedbpdb.cursor()
         print(f' > Populating table "session"...')
         for session in SESSIONS:  
-            timestamp = f'(SELECT TO_TIMESTAMP (\'{session["query_date"]}\', \'YYYY-MM-DD HH24:MI:SS.FF6\') FROM dual)'
-            logon= f'(SELECT TO_DATE(\'{session["logon_time"]}\', \'YYYY-MM-DD HH:MI:SS\') FROM dual)'
-            cursorAEBD.execute(f'INSERT INTO "session" (session_id, user_id,session_status,logon_time, last_call_et, query_date)\n'
-                            f'VALUES ({session["session_id"]}, {session["user_id"]},\'{session["session_status"]}\',{logon},{session["last_call_et"]},{timestamp})')
+            cursorAEBD.execute(f'SELECT count(1) from "session" s where s.session_id={session["session_id"]}')
+            total, = cursorAEBD.fetchone()
+            
+            logon= f'(SELECT TO_DATE(\'{session["logon_time"]}\', \'YYYY-MM-DD HH24:MI:SS\') FROM dual)'
+            
+            if total == 0:
+                cursorAEBD.execute(f'INSERT INTO "session" (session_id, user_id,session_status,logon_time, last_call_et)\n'
+                                f'VALUES ({session["session_id"]}, {session["user_id"]},\'{session["session_status"]}\',{logon},{session["last_call_et"]})')
+            else:
+                cursorAEBD.execute(f'UPDATE "session" \n'
+                                f'SET user_id = {session["user_id"]}, session_status = \'{session["session_status"]}\', logon_time= {logon}, last_call_et={session["last_call_et"]}\n'
+                                f'WHERE session_id= {session["session_id"]}')
         aedbpdb.commit()
 
         print(f'------------------------------------------------------------')

@@ -6,6 +6,8 @@ import Tab from 'react-bootstrap/Tab';
 import Nav from 'react-bootstrap/Nav';
 import Card from "react-bootstrap/Card";
 
+import StorageSection from "./StorageSection";
+
 export default function Storage(props) {
     const {data, isPending, error} = useFetch("http://localhost:7050/tablespaces/" + props.db)
 
@@ -23,10 +25,10 @@ export default function Storage(props) {
                       {isPending && <Spinner animation="border" />}
                       {error &&  <Alert variant="danger">{error}</Alert>}
                       <Nav variant="pills" className="flex-column">
-                        {data && data.map(el => {
+                        {data && data.map((el, idx) => {
                           return(
-                            <Nav.Item>
-                              <Nav.Link eventKey={el.TABLESPACE_NAME}>{el.TABLESPACE_NAME}</Nav.Link>
+                            <Nav.Item key={idx}>
+                              <Nav.Link eventKey={el.TABLESPACE_NAME}>{el.TEMPORARY == 1 ? el.TABLESPACE_NAME + " [TEMPORARY]" : el.TABLESPACE_NAME}</Nav.Link>
                             </Nav.Item>
                           )
                         })}
@@ -37,9 +39,9 @@ export default function Storage(props) {
                   </div>
                   <div className="datafiles-stats">
                     <Tab.Content>
-                      {data && data.map(el => {
-                        return(<Tab.Pane eventKey={el.TABLESPACE_NAME}>
-                          <h1>{el.TABLESPACE_NAME}</h1>
+                      {data && data.map((el, idx) => {
+                        return(<Tab.Pane key={idx} eventKey={el.TABLESPACE_NAME}>
+                          <StorageSection db={props.db} tablespace={el.TABLESPACE_NAME} />
                         </Tab.Pane>)
                       })}
                     </Tab.Content>

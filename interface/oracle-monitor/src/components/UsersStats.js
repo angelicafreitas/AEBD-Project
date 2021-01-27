@@ -10,7 +10,7 @@ export default function Users(props) {
     
     const [id,setId] = useState(null)
     const [modalShow,setModalShow] = useState(false)
-
+    const [query, setQuery] = useState("")
 
     const startModal = (user_id) => {
       setId(user_id)
@@ -22,6 +22,7 @@ export default function Users(props) {
             <div className="center-box">
                 {isPending && <Spinner animation="border" />}
                 {error &&  <Alert variant="danger">{error}</Alert>}
+                <input type="text" onChange={(e) => setQuery(e.target.value)} />
                 {users && 
                     <Table style={{width: "85%", "margin-top": "2vh"}} striped bordered hover>
                     <thead className="table-header">
@@ -34,14 +35,17 @@ export default function Users(props) {
                     </thead>
                     <tbody>
                         {users.map(user =>{
+                          if(user.USER_NAME.trim().includes(query)){
                             return(
-                            <tr onClick={() => startModal(user.USER_ID)}>
-                                <td> {user.USER_ID} </td>
-                                <td> {user.USER_NAME} </td>
-                                <td> {user.DEFAULT_TABLESPACE} </td>
-                                <td> {user.TEMPORARY_TABLESPACE} </td>
-                            </tr>
-                            )
+                              <tr onClick={() => startModal(user.USER_ID)}>
+                                  <td> {user.USER_ID} </td>
+                                  <td> {user.USER_NAME} </td>
+                                  <td> {user.DEFAULT_TABLESPACE} </td>
+                                  <td> {user.TEMPORARY_TABLESPACE} </td>
+                              </tr>
+                              )
+                          }
+                            
                         })}
                     </tbody>
                   </Table>

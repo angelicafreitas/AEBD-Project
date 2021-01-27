@@ -1,12 +1,12 @@
 -- DROP TABLE memory;
 -- DROP TABLE cpu;
+-- DROP TABLE users;
 -- DROP TABLE datafiles;
 -- DROP TABLE tablespaces;
 -- DROP TABLE users_privileges;
 -- DROP TABLE privileges;
--- DROP TABLE users;
 -- DROP TABLE db;
--- DROP TABLE "session"
+-- DROP TABLE "session";
 -- commit;
 
 create table db (
@@ -60,9 +60,8 @@ create table datafiles (
     sizeMB int,
     free int,
     used int,
-    datafiles_query_date timestamp not null,
     query_date timestamp not null,
-    CONSTRAINT DATAFILE_PK PRIMARY KEY (file_id,datafiles_query_date),
+    CONSTRAINT DATAFILE_PK PRIMARY KEY (file_id),
     CONSTRAINT DATAFILE_FK FOREIGN KEY (tablespace_name,query_date) REFERENCES tablespaces(tablespace_name,query_date)
 );
 
@@ -92,8 +91,7 @@ create table "session" (
     session_status varchar2(70) not null enable,
     logon_time date,
     last_call_et number,
-    query_date timestamp not null ,
-    CONSTRAINT SESSION_PK PRIMARY KEY (session_id, query_date),
+    CONSTRAINT SESSION_PK PRIMARY KEY (session_id),
     CONSTRAINT SESSION_FK FOREIGN KEY (user_id) REFERENCES users(user_id)
 
 );

@@ -19,9 +19,9 @@ router.get('/cpu/:db_name', function(req, res, next) {
 
 //get DATAFILES
 router.get('/datafiles/:tablespace', function(req, res, next) {
-  dbConnection.run("SELECT * FROM DATAFILES WHERE tablespace_name='" + req.params.tablespace + "'")
-  .then(data => res.jsonp(data.rows))
-  .catch(err => res.status(400).jsonp(err));
+    dbConnection.run("SELECT * FROM DATAFILES WHERE tablespace_name='" + req.params.tablespace + "'")
+    .then(data => res.jsonp(data.rows))
+    .catch(err => res.status(400).jsonp(err));  
 });
 
 //get DB
@@ -48,7 +48,7 @@ router.get('/privileges', function(req, res, next) {
 //get TABLESPACES
 router.get('/tablespaces/:db_name', function(req, res, next) {
   if(req.query.tablespace && req.query.recent){
-    dbConnection.run('SELECT * FROM TABLESPACES WHERE DATABASE_NAME=\'' + req.params.db_name + "\' and tablespace_name='" + req.query.tablespace + "'  and rownum=1 order by query_date desc")
+    dbConnection.run('SELECT * FROM TABLESPACES WHERE DATABASE_NAME=\'' + req.params.db_name + "\' and tablespace_name='" + req.query.tablespace + "' order by query_date desc FETCH FIRST 1 ROWS ONLY")
     .then(data => res.jsonp(data.rows))
     .catch(err => res.status(400).jsonp(err)) ;      
 
@@ -76,6 +76,13 @@ router.get('/users/:db_name', function(req, res, next) {
 //get PRIVILEGES FROM USER
 router.get('/users_privileges/:user_id', function(req, res, next) {
   dbConnection.run('select name from privileges p where p.privilege_id in (select privilege_id from users_privileges where user_id='+ req.params.user_id +')')
+  .then(data => res.jsonp(data.rows))
+  .catch(err => res.status(400).jsonp(err));
+});
+
+//get SESSION FROM USER
+router.get('/sessions/:user_id', function(req, res, next) {
+  dbConnection.run('select * from "session" s where s.user_id= ' + req.params.user_id)
   .then(data => res.jsonp(data.rows))
   .catch(err => res.status(400).jsonp(err));
 });
