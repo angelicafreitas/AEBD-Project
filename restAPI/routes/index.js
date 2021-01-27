@@ -75,7 +75,7 @@ router.get('/users/:db_name', function(req, res, next) {
 
 //get PRIVILEGES FROM USER
 router.get('/users_privileges/:user_id', function(req, res, next) {
-  dbConnection.run('select name from privileges p where p.privilege_id in (select privilege_id from users_privileges where user_id='+ req.params.user_id +')')
+  dbConnection.run('select priv_name from users_privileges where user_id='+ req.params.user_id)
   .then(data => res.jsonp(data.rows))
   .catch(err => res.status(400).jsonp(err));
 });

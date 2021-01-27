@@ -193,17 +193,16 @@ try:
             # Data needed for Table "USERS_PRIVELEGES"
             print(' > Fetching data for table USERS_PRIVILEGES...')
             fetch_user_privileges_info = """
-                SELECT d1.USER_ID, SYSTEM_PRIVILEGE_MAP.PRIVILEGE "id_priv"
-                FROM dba_sys_privs d, DBA_USERS d1, SYSTEM_PRIVILEGE_MAP
-                WHERE d.PRIVILEGE = SYSTEM_PRIVILEGE_MAP.NAME
-                AND grantee = d1.USERNAME
+                SELECT d1.USER_ID, d.privilege
+                FROM dba_sys_privs d, DBA_USERS d1
+                WHERE grantee = d1.USERNAME
             """
             cursor.execute(fetch_user_privileges_info)
             
-            for user_id, privilege_id in cursor:
+            for user_id, priv_name in cursor:
                 user_priv ={
                     "user_id": user_id,
-                    "privilege_id": privilege_id
+                    "priv_name": priv_name
                 }
                 USERS_PRIVILEGES.append(user_priv)
     
@@ -357,8 +356,8 @@ try:
         if total == 0:
             print(f' > Populating table PRIVILEGES...')
             for privilege in PRIVILEGES:  
-                cursorAEBD.execute(f'INSERT INTO PRIVILEGES (privilege_id, name, property)\n'
-                               f'VALUES ({privilege["privilege_id"]},\'{privilege["name"]}\',{privilege["property"]})')
+                cursorAEBD.execute(f'INSERT INTO PRIVILEGES (name)\n'
+                               f'VALUES (\'{privilege["name"]}\')')
         aedbpdb.commit()
 
 
@@ -367,12 +366,11 @@ try:
         print(f' > Populating table USERS_PRIVILEGES...')
         for user_priv in USERS_PRIVILEGES:  
             #Checking if user_priv is already in USERS_PRIVILEGES
-            cursorAEBD.execute(f'SELECT count(1) from USERS_PRIVILEGES where user_id={user_priv["user_id"]} and PRIVILEGE_ID={user_priv["privilege_id"]}')
+            cursorAEBD.execute(f'SELECT count(1) from USERS_PRIVILEGES where user_id={user_priv["user_id"]} and priv_name=\'{user_priv["priv_name"]}\'')
             total, = cursorAEBD.fetchone()
-            
             if total == 0:
-                cursorAEBD.execute(f'INSERT INTO USERS_PRIVILEGES (user_id, privilege_id)\n'
-                               f'VALUES ({user_priv["user_id"]},{user_priv["privilege_id"]})')
+                cursorAEBD.execute(f'INSERT INTO USERS_PRIVILEGES (user_id, priv_name)\n'
+                               f'VALUES ({user_priv["user_id"]},\'{user_priv["priv_name"]}\')')
         aedbpdb.commit()
 
 

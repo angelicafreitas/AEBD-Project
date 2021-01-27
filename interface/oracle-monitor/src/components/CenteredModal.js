@@ -29,7 +29,7 @@ export default function ModalCentered(props){
               <ListGroup className="mb-3">
                 
                 {props.user_id !== null && sessions && sessions.map(el =>{
-                    return (<ListGroup.Item>{"#" + el.SESSION_ID + " | " + el.SESSION_STATUS + " | " + el.LOGON_TIME}</ListGroup.Item>)
+                    return (<ListGroup.Item>{"Session ID: " + el.SESSION_ID + " | " + el.SESSION_STATUS + " | " + el.LOGON_TIME}</ListGroup.Item>)
                 })}
                 {sessions && sessions.length == 0 && <Alert variant="warning">No sessions for this user</Alert>}
             </ListGroup>
@@ -40,8 +40,8 @@ export default function ModalCentered(props){
             <ListGroup>
                 
                 {props.user_id !== null && data && data.map(el =>{
-                  if(el.NAME.trim().includes(query)){
-                    return (<ListGroup.Item>{el.NAME}</ListGroup.Item>)
+                  if(el.PRIV_NAME.trim().includes(query)){
+                    return (<ListGroup.Item>{el.PRIV_NAME}</ListGroup.Item>)
                   }
                     
                 })}

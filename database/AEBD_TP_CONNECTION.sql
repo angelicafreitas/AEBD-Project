@@ -1,12 +1,12 @@
+-- DROP TABLE "session";
 -- DROP TABLE memory;
+-- DROP TABLE users_privileges;
 -- DROP TABLE cpu;
 -- DROP TABLE users;
 -- DROP TABLE datafiles;
 -- DROP TABLE tablespaces;
--- DROP TABLE users_privileges;
 -- DROP TABLE privileges;
 -- DROP TABLE db;
--- DROP TABLE "session";
 -- commit;
 
 create table db (
@@ -27,18 +27,16 @@ create table users (
 );
 
 create table privileges (
-    privilege_id int not null enable,
-    name varchar2(200),
-    property int,
-    CONSTRAINT PRIVILEGE_PK PRIMARY KEY (privilege_id)
+    name varchar2(200) not null,
+    CONSTRAINT PRIVILEGE_PK PRIMARY KEY (name)
 );
 
 create table users_privileges (
     user_id int not null,
-    privilege_id int not null,
-    CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (user_id,privilege_id),
+    priv_name varchar2(200) not null,
+    CONSTRAINT USERS_PRIVILEGES_PK PRIMARY KEY (user_id,priv_name),
     CONSTRAINT USERS_PRIVILEGES_FK1 FOREIGN KEY (user_id) REFERENCES users(user_id),
-    CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (privilege_id) REFERENCES privileges(privilege_id)
+    CONSTRAINT USERS_PRIVILEGES_FK2 FOREIGN KEY (priv_name) REFERENCES privileges(name)
 );
 
 create table tablespaces (
